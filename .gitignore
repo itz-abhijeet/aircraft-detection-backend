@@ -1,0 +1,6 @@
+venv/
+models/
+*.h5
+*.dll
+__pycache__/
+*.pyc

@@ -1,0 +1,17 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0      # ASGI server with WebSocket & HTTP/2 support
+python-multipart>=0.0.9        # Required for FastAPI multipart/form-data
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+tensorflow>=2.16.0,<2.22.0     # 2.16+ is the first release with Python 3.12 wheels
+keras==3.10.0                  # Must match the version used to save best_model.h5
+
+# ── Image handling ────────────────────────────────────────────────────────────
+Pillow>=10.0.0                 # PIL-based image decoding & resizing
+
+# ── Numerics ──────────────────────────────────────────────────────────────────
+numpy>=1.24.0
+
+# ── Schema validation ─────────────────────────────────────────────────────────
+pydantic>=2.0.0                # Ships with FastAPI; explicit pin for clarity

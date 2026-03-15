@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-green: #33ff00;
+  --color-terminal-bg: #0a0a0a;
+  --color-amber-accent: #ffb000;
+  --font-mono: "JetBrains Mono", "VT323", monospace;
+  --animate-typewriter: typewriter 2s steps(40, end);
+  --animate-cursor-blink: cursor-blink 1s step-end infinite;
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes cursor-blink {
+  0%, 100% { border-right-color: transparent; }
+  50% { border-right-color: var(--color-neon-green); }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-terminal-bg);
+    color: var(--color-neon-green);
+    font-family: var(--font-mono);
+    text-shadow: 0 0 2px rgba(51, 255, 0, 0.5);
+    margin: 0;
+    overflow: hidden; /* For full screen dashboard */
+  }
+
+  * {
+    border-radius: 0 !important; /* No radius */
+    box-sizing: border-box;
+  }
+}
+
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.1)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.typing-effect {
+  overflow: hidden; /* Ensures the content is not revealed until the animation */
+  white-space: nowrap; /* Keeps the content on a single line */
+  border-right: .15em solid #33ff00; /* The typwriter cursor */
+  animation: 
+    typewriter 3.5s steps(40, end),
+    cursor-blink .75s step-end infinite;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-terminal-bg);
+  border-left: 1px solid var(--color-neon-green);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-green);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-terminal-bg);
+}
