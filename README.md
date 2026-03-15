@@ -22,7 +22,9 @@ aircraft-detection-backend/
 
 ## ⚠️ Model Files Required
 
-The model files are not included in this repository due to size limits. You must add them manually before running.
+The model files are not included in this repository due to size limits. Download them from the link below and place them in the `models/` folder.
+
+📥 **[Download Model Files from Google Drive](https://drive.google.com/drive/folders/1_BB49rOzmIKf6JYUcp4vkPbPMdshq0IN?usp=sharing)**
 
 Place the following files in the `models/` folder:
 
