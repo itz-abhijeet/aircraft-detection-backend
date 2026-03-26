@@ -48,6 +48,9 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     # Ensure 3-channel RGB regardless of source format
     img = img.convert("RGB")
 
+    # Auto-rotate based on EXIF orientation (fixes mobile camera photos)
+    img = ImageOps.exif_transpose(img)
+
     # Resize preserving quality
     img = img.resize(TARGET_SIZE, Image.Resampling.LANCZOS)
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, UploadCloud, Activity, ShieldAlert, Cpu, Crosshair, Radar, AlertTriangle, CheckSquare } from 'lucide-react';
+import { Terminal, UploadCloud, Activity, ShieldAlert, Cpu, Crosshair, Radar, AlertTriangle, CheckSquare, Satellite } from 'lucide-react';
+import LiveTracker from './LiveTracker';
 
 const TypewriterText = ({ text, delay = 50, onComplete }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -32,6 +33,7 @@ const ProgressBar = ({ progress, total = 20 }) => {
 };
 
 export default function App() {
+  const [mode, setMode] = useState('manual'); // 'manual' | 'live'
   const [logs, setLogs] = useState([
     { id: 1, text: "INIT SYSTEM SECURE BOOT..." },
     { id: 2, text: "LOADING TACTICAL UPLINK PROTOCOLS..." },
@@ -142,7 +144,27 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0a0a0a] text-[#33ff00] p-4 font-mono flex flex-col gap-4 relative">
+    <div className="h-screen w-screen bg-[#0a0a0a] text-[#33ff00] font-mono flex flex-col">
+      {/* Mode switcher */}
+      <div className="flex border-b border-[#33ff00] shrink-0">
+        <button
+          onClick={() => setMode('manual')}
+          className={`flex items-center gap-2 px-6 py-2 text-sm tracking-widest uppercase transition-all
+            ${mode === 'manual' ? 'bg-[#33ff00] text-[#0a0a0a] font-bold' : 'text-[#33ff00] hover:bg-[#1a1a1a]'}`}
+        >
+          <Terminal size={14}/> Manual Scan
+        </button>
+        <button
+          onClick={() => setMode('live')}
+          className={`flex items-center gap-2 px-6 py-2 text-sm tracking-widest uppercase transition-all
+            ${mode === 'live' ? 'bg-[#33ff00] text-[#0a0a0a] font-bold' : 'text-[#33ff00] hover:bg-[#1a1a1a]'}`}
+        >
+          <Satellite size={14}/> Live Satellite Feed
+        </button>
+      </div>
+
+      {mode === 'live' ? <LiveTracker /> : (
+    <div className="flex-1 p-4 flex flex-col gap-4 relative overflow-hidden">
       <div className="scanlines"></div>
       
       {/* HEADER */}
@@ -329,6 +351,8 @@ export default function App() {
           )}
         </div>
       </section>
+    </div>
+      )}
     </div>
   );
 }

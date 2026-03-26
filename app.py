@@ -243,7 +243,59 @@ async def detect(file: UploadFile = File(..., description="Aerial image for clas
     )
 
 
-# ── /health ───────────────────────────────────────────────────────────────────
+# ── /v1/detect-url ────────────────────────────────────────────────────────────
+class DetectUrlRequest(BaseModel):
+    image_url: str
+
+@app.post("/v1/detect-url", response_model=DetectResponse)
+async def detect_url(body: DetectUrlRequest):
+    """Classify an image from a URL (e.g. Firebase Storage)."""
+    import httpx
+
+    model: tf.keras.Model = state.get("model")
+    idx_to_class: dict    = state.get("idx_to_class")
+
+    if model is None or idx_to_class is None:
+        raise HTTPException(status_code=503, detail="SYSTEM_OFFLINE: Model not yet initialised.")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(body.image_url, timeout=15.0)
+            r.raise_for_status()
+            raw = r.content
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"IMAGE_FETCH_ERROR: {exc}") from exc
+
+    try:
+        tensor = preprocess_image(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    t0 = time.perf_counter()
+    preds: np.ndarray = model.predict(tensor, verbose=0)
+    latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+
+    pred_idx    = int(np.argmax(preds[0]))
+    confidence  = float(preds[0][pred_idx])
+    class_key   = idx_to_class.get(pred_idx, "UNKNOWN")
+    target_name = DISPLAY_NAMES.get(class_key, class_key)
+    status      = "IDENTIFIED" if confidence >= 0.50 else "UNRESOLVED"
+
+    log.info("SATELLITE SCAN :: target=%s  conf=%.3f  latency=%.1f ms", target_name, confidence, latency_ms)
+
+    return DetectResponse(
+        status=status,
+        target=target_name,
+        confidence=round(confidence, 4),
+        telemetry=TelemetryBlock(
+            latency_ms=latency_ms,
+            num_classes=len(idx_to_class),
+            vram_usage=_vram_label(confidence),
+        ),
+    )
+
+
+
 @app.get("/health", tags=["System"])
 async def health():
     """Lightweight uptime probe."""
