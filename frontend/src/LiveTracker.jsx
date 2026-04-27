@@ -1,7 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { ref, query, orderByChild, limitToLast, onValue } from 'firebase/database';
 import { db } from './firebase';
-import { Satellite, Radar, ShieldAlert, AlertTriangle, CheckSquare, Cpu, Activity } from 'lucide-react';
+import { Satellite, Radar, ShieldAlert, AlertTriangle, CheckSquare, Cpu, Activity, BrainCircuit, Factory, Globe, XCircle } from 'lucide-react';
+
+// Monotonically-incrementing log ID — avoids duplicate-key collisions that
+// occur when multiple addLog() calls fire within the same millisecond tick.
+// Starts at 3 to avoid colliding with the 3 hardcoded seed entries in useState.
+let _logSeq = 3;
+const nextLogId = () => ++_logSeq;
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -50,7 +56,7 @@ export default function LiveTracker() {
   const lastKeyRef = useRef(null);
 
   useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
-  const addLog = (text) => setLogs(prev => [...prev, { id: Date.now(), text }]);
+  const addLog = (text) => setLogs(prev => [...prev, { id: nextLogId(), text }]);
 
   useEffect(() => {
     const q = query(ref(db, 'plane_trackings'), orderByChild('timestamp'), limitToLast(1));
@@ -88,6 +94,9 @@ export default function LiveTracker() {
       setResult(data);
       addLog(`SCAN COMPLETE: ${data.target} — ${(data.confidence * 100).toFixed(1)}%`);
       addLog(`STATUS: ${data.status} | LATENCY: ${data.telemetry?.latency_ms}ms`);
+      if (data.intel) {
+        addLog(`INTEL :: MFR: ${data.intel.manufacturer} | OPS: ${data.intel.operators.join(', ')}`);
+      }
     } catch (err) {
       clearInterval(iv); setScanProgress(0);
       setError(`SCAN FAILED: ${err.message}`);
@@ -175,7 +184,7 @@ export default function LiveTracker() {
       </main>
 
 
-      <section className="shrink-0 border border-[#33ff00] flex flex-col bg-[#0a0a0a] z-10" style={{ height: '155px' }}>
+      <section className="shrink-0 border border-[#33ff00] flex flex-col bg-[#0a0a0a] z-10">
         <div className="shrink-0 border-b border-[#33ff00] p-1 bg-[#1a1a1a] flex justify-between items-center text-xs">
           <span>[ TARGET ANALYSIS & TELEMETRY ]</span><span>TMUX PANE 3</span>
         </div>
@@ -225,6 +234,52 @@ export default function LiveTracker() {
                 <span>LATENCY: {result.telemetry?.latency_ms}ms</span>
                 <span>MODEL: {result.telemetry?.model}</span>
               </div>
+              {/* No-detection alert */}
+              {(result.status === 'UNRESOLVED' || result.status === 'NO_AIRCRAFT') && (
+                <div className="mt-3 flex items-start gap-3 border-2 border-red-500 bg-red-950/40 p-3 animate-pulse">
+                  <XCircle size={24} className="text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-red-400 font-bold tracking-widest text-xs uppercase mb-1">
+                      ⚠ NO AIRCRAFT DETECTED IN FRAME
+                    </div>
+                    <div className="text-red-300/80 text-[10px] leading-relaxed">
+                      Status: <span className="font-bold text-red-300">{result.status}</span>. Once check the radar / satellite image data to verify — our model sometimes detects birds or ground objects as aircraft. Manual confirmation recommended before escalating threat level.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* INTEL BRIEF */}
+              {result.intel && (
+                <div className="mt-3 border border-[#ffb000] bg-[#0d0d00] p-3 text-xs">
+                  <div className="text-[#ffb000] font-bold tracking-widest mb-2 flex items-center gap-2 border-b border-[#ffb000]/30 pb-1.5">
+                    <BrainCircuit size={11}/> INTEL BRIEF — CLASSIFIED
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-neutral-500 uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1">
+                        <Factory size={10}/> Manufacturer Country
+                      </div>
+                      <div className="text-[#33ff00] font-bold text-sm">{result.intel.manufacturing_country}</div>
+                      <div className="text-neutral-400 text-[10px] mt-0.5">{result.intel.manufacturer}</div>
+                    </div>
+                    <div>
+                      <div className="text-neutral-500 uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1">
+                        <Globe size={10}/> Operator Nations
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {result.intel.operators.length > 0
+                          ? result.intel.operators.map((op, i) => (
+                              <span key={i} className="px-1.5 py-0.5 bg-[#33ff00]/10 border border-[#33ff00]/40 text-[#33ff00] text-[10px] tracking-wider">
+                                {op}
+                              </span>
+                            ))
+                          : <span className="text-neutral-600">UNKNOWN</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-4 h-full text-neutral-600">

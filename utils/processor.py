@@ -6,7 +6,12 @@ Converts raw image bytes → normalised NumPy batch tensor (1, H, W, 3).
 
 import io
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFile
+
+# Allow Pillow to process images that arrived truncated (e.g. incomplete
+# Firebase Storage downloads).  Missing bytes are filled with grey pixels
+# rather than raising OSError, so inference can still proceed.
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 TARGET_SIZE   = (224, 224)   # Width × Height expected by the model
@@ -42,7 +47,7 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     """
     try:
         img = Image.open(io.BytesIO(image_bytes))
-    except Exception as exc:
+    except (OSError, Exception) as exc:
         raise ValueError(f"Unable to decode image: {exc}") from exc
 
     # Ensure 3-channel RGB regardless of source format

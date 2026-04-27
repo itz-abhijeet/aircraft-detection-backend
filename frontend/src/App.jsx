@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, UploadCloud, Activity, ShieldAlert, Cpu, Crosshair, Radar, AlertTriangle, CheckSquare, Satellite } from 'lucide-react';
+import { Terminal, UploadCloud, Activity, ShieldAlert, Cpu, Crosshair, Radar, AlertTriangle, CheckSquare, Satellite, BrainCircuit, XCircle, Factory, Globe } from 'lucide-react';
 import LiveTracker from './LiveTracker';
 
 const TypewriterText = ({ text, delay = 50, onComplete }) => {
@@ -127,10 +127,22 @@ export default function App() {
       setResults(data);
       addLog("TRANSMISSION SUCCESSFUL. DATA PARSED.");
       
+      // Log pre-screen advisory
+      if (data.pre_screen) {
+        addLog(`MOONDREAM ADVISORY :: ${data.pre_screen.verdict || 'N/A'}`);
+      }
+
       if (data.status === "IDENTIFIED") {
         addLog(`CRITICAL: TARGET ACQUIRED — ${data.target} (${(data.confidence * 100).toFixed(1)}%)`);
+        if (data.intel) {
+          addLog(`INTEL BRIEF :: MFR: ${data.intel.manufacturer} | OPS: ${data.intel.operators.join(', ')}`);
+        }
+      } else if (data.status === "NO_AIRCRAFT") {
+        addLog(`⚠ PRE-SCREEN: NO AIRCRAFT IN FRAME — Moondream verdict: ${data.pre_screen?.verdict}`);
+        addLog(`⚠ Once check the radar/satellite image data to verify.`);
       } else {
-        addLog(`STATUS: TARGET UNRESOLVED. CONFIDENCE TOO LOW.`);
+        addLog(`⚠ STATUS: ${data.status} — TARGET UNRESOLVED. Confidence too low.`);
+        addLog(`⚠ Once check the radar/satellite image data to verify.`);
       }
 
     } catch (err) {
@@ -166,6 +178,21 @@ export default function App() {
       {mode === 'live' ? <LiveTracker /> : (
     <div className="flex-1 p-4 flex flex-col gap-4 relative overflow-hidden">
       <div className="scanlines"></div>
+
+      {/* FLOATING ALERT — top right, shown when no aircraft detected */}
+      {results && results.status !== 'IDENTIFIED' && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm flex items-start gap-3 border-2 border-red-500 bg-[#0a0a0a] shadow-[0_0_20px_#ff000066] p-4 animate-pulse">
+          <XCircle size={22} className="text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <div className="text-red-400 font-bold tracking-widest text-xs uppercase mb-1">
+              ⚠ NO AIRCRAFT DETECTED
+            </div>
+            <div className="text-red-300/80 text-[11px] leading-relaxed">
+              Once check the radar / satellite image data to verify — our model sometimes detects birds or ground objects as aircraft.
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* HEADER */}
       <header className="flex justify-between items-center border border-[#33ff00] p-2 bg-[#0a0a0a] z-10">
@@ -182,15 +209,15 @@ export default function App() {
       </header>
 
       {/* MAIN GRID */}
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 z-10">
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 z-10 overflow-hidden">
         
         {/* LEFT PANE: SYSTEM LOGS */}
-        <section className="col-span-2 border border-[#33ff00] flex flex-col bg-[#0a0a0a]">
-          <div className="border-b border-[#33ff00] p-1 bg-[#1a1a1a] flex justify-between items-center text-xs">
+        <section className="col-span-2 border border-[#33ff00] flex flex-col bg-[#0a0a0a] min-h-0">
+          <div className="border-b border-[#33ff00] p-1 bg-[#1a1a1a] flex justify-between items-center text-xs shrink-0">
             <span>[ SYSTEM LOGS ]</span>
             <span>TMUX PANE 0</span>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto space-y-1">
+          <div className="flex-1 min-h-0 p-4 overflow-y-auto space-y-1 text-xs">
             {logs.map((log) => (
               <div key={log.id} className="flex">
                 <span className="mr-2">&gt;</span>
@@ -299,44 +326,78 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.target ? (
-                    <tr className="border-b border-dashed border-neutral-700 hover:bg-[#1a1a1a]">
-                      <td className="p-2 text-center">#1</td>
-                      <td className="p-2 font-bold">{results.target}</td>
-                      <td className="p-2">
-                        <div className="flex items-center gap-2">
-                          <span>{(results.confidence * 100).toFixed(1)}%</span>
-                          <div className="h-2 w-16 bg-[#0a0a0a] border border-[#33ff00]">
-                            <div className="h-full bg-[#33ff00]" style={{width: `${results.confidence * 100}%`}}></div>
-                          </div>
+                  <tr className="border-b border-dashed border-neutral-700 hover:bg-[#1a1a1a]">
+                    <td className="p-2 text-center">#1</td>
+                    <td className="p-2 font-bold">
+                      {results.target && results.target !== 'N/A' ? results.target : '—'}
+                      {results.status === 'NO_AIRCRAFT' && (
+                        <span className="ml-2 text-red-400 text-[10px] tracking-widest">[UNVERIFIED]</span>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <span>{(results.confidence * 100).toFixed(1)}%</span>
+                        <div className="h-2 w-16 bg-[#0a0a0a] border border-[#33ff00]">
+                          <div className="h-full bg-[#33ff00]" style={{width: `${results.confidence * 100}%`}}></div>
                         </div>
-                      </td>
-                      <td className="p-2 text-neutral-400 text-xs">
-                        {results.telemetry?.latency_ms} ms
-                      </td>
-                      <td className="p-2">
-                         {results.confidence > 0.8 ? (
-                          <span className="text-red-500 font-bold flex items-center gap-1"><ShieldAlert size={14}/> HIGH</span>
-                         ) : results.confidence > 0.5 ? (
-                          <span className="text-[#ffb000] font-bold flex items-center gap-1"><AlertTriangle size={14}/> MED</span>
-                         ) : (
-                          <span className="text-green-500 font-bold flex items-center gap-1"><CheckSquare size={14}/> LOW</span>
-                         )}
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="p-8 text-center text-neutral-500">
-                        NO TARGETS DETECTED. SECTOR CLEAR.
-                      </td>
-                    </tr>
-                  )}
+                      </div>
+                    </td>
+                    <td className="p-2 text-neutral-400 text-xs">{results.telemetry?.latency_ms} ms</td>
+                    <td className="p-2">
+                      {results.confidence > 0.8
+                        ? <span className="text-red-500 font-bold flex items-center gap-1"><ShieldAlert size={14}/> HIGH</span>
+                        : results.confidence > 0.5
+                        ? <span className="text-[#ffb000] font-bold flex items-center gap-1"><AlertTriangle size={14}/> MED</span>
+                        : <span className="text-green-500 font-bold flex items-center gap-1"><CheckSquare size={14}/> LOW</span>}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
 
-              {/* RAW JSON Output as fallback/extra telemetry */}
-              <div className="mt-4 mt-8 border-t border-dashed border-[#33ff00] pt-4">
-                 <div className="mb-2 text-[#33ff00] font-bold text-xs uppercase">{">>"} RAW_DATALINK_DUMP</div>
+              {/* INTEL BRIEF — standalone panel */}
+              {results.intel && (
+                <div className="mt-3 border border-[#ffb000] bg-[#0d0d00] p-4">
+                  <div className="text-[#ffb000] font-bold tracking-widest text-xs mb-3 flex items-center gap-2 border-b border-[#ffb000]/30 pb-2">
+                    <BrainCircuit size={14}/> INTEL BRIEF — CLASSIFIED
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <div className="text-neutral-500 uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1">
+                        <Factory size={10}/> Manufacturer Country
+                      </div>
+                      <div className="text-[#33ff00] text-base font-bold">{results.intel.manufacturing_country}</div>
+                      <div className="text-neutral-400 text-xs mt-0.5">{results.intel.manufacturer}</div>
+                    </div>
+                    <div>
+                      <div className="text-neutral-500 uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1">
+                        <Globe size={10}/> Operator Nations
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {results.intel.operators.length > 0
+                          ? results.intel.operators.map((op, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-[#33ff00]/10 border border-[#33ff00]/40 text-[#33ff00] text-xs tracking-wider">
+                                {op}
+                              </span>
+                            ))
+                          : <span className="text-neutral-600 text-xs">UNKNOWN</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pre-screen + RAW JSON Output */}
+              <div className="mt-4 border-t border-dashed border-[#33ff00] pt-4">
+                {results.pre_screen && (
+                  <div className="mb-3 flex items-center gap-2 text-xs">
+                    <BrainCircuit size={14} className="text-[#ffb000]" />
+                    <span className="text-neutral-400">MOONDREAM ADVISORY:</span>
+                    <span className="text-[#ffb000] italic truncate max-w-xs">{results.pre_screen.verdict || 'N/A'}</span>
+                    <span className="text-neutral-600 ml-auto">model: {results.pre_screen.model}</span>
+                  </div>
+                )}
+                <div className="mb-2 text-[#33ff00] font-bold text-xs uppercase">{">>"} RAW_DATALINK_DUMP</div>
                  <pre className="text-xs text-neutral-500 max-h-32 overflow-y-auto p-2 bg-[#050505] border border-neutral-800">
                    {JSON.stringify(results, null, 2)}
                  </pre>
