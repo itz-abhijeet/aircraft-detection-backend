@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB3FNWOxyOs1265IOJDTGA5dODeVkMmLVM",
+  apiKey: "Google API Key",
   authDomain: "plane-tracker-d8524.firebaseapp.com",
   databaseURL: "https://plane-tracker-d8524-default-rtdb.firebaseio.com",
   projectId: "plane-tracker-d8524",
